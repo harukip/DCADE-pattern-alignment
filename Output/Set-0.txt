@@ -1,0 +1,10 @@
+0-0-0	Lowest price	#	All price	#	Free	#	TWD 1-1000	#	TWD 1000-2000	#	TWD 2000-3000	#	Upon TWD 3000	#	Time	#	All time	#	Today	#	In a week	#	In a month	#	In two months	#	
+0-0-1	Lowest price	#	All price	#	Free	#	TWD 1-1000	#	TWD 1000-2000	#	TWD 2000-3000	#	Upon TWD 3000	#	Time	#	All time	#	Today	#	In a week	#	In a month	#	In two months	#	
+1-0-0	Lowest price	#	All price	#	Free	#	TWD 1-1000	#	TWD 1000-2000	#	TWD 2000-3000	#	Upon TWD 3000	#	Time	#	All time	#	Today	#	In a week	#	In a month	#	In two months	#	
+1-0-1	Lowest price	#	All price	#	Free	#	TWD 1-1000	#	TWD 1000-2000	#	TWD 2000-3000	#	Upon TWD 3000	#	Time	#	All time	#	Today	#	In a week	#	In a month	#	In two months	#	
+2-0-0	Lowest price	#	All price	#	Free	#	TWD 1-1000	#	TWD 1000-2000	#	TWD 2000-3000	#	Upon TWD 3000	#	Time	#	All time	#	Today	#	In a week	#	In a month	#	In two months	#	
+2-0-1	Lowest price	#	All price	#	Free	#	TWD 1-1000	#	TWD 1000-2000	#	TWD 2000-3000	#	Upon TWD 3000	#	Time	#	All time	#	Today	#	In a week	#	In a month	#	In two months	#	
+3-0-0	Lowest price	#	All price	#	Free	#	TWD 1-1000	#	TWD 1000-2000	#	TWD 2000-3000	#	Upon TWD 3000	#	Time	#	All time	#	Today	#	In a week	#	In a month	#	In two months	#	
+3-0-1	Lowest price	#	All price	#	Free	#	TWD 1-1000	#	TWD 1000-2000	#	TWD 2000-3000	#	Upon TWD 3000	#	Time	#	All time	#	Today	#	In a week	#	In a month	#	In two months	#	
+4-0-0	Lowest price	#	All price	#	Free	#	TWD 1-1000	#	TWD 1000-2000	#	TWD 2000-3000	#	Upon TWD 3000	#	Time	#	All time	#	Today	#	In a week	#	In a month	#	In two months	#	
+4-0-1	Lowest price	#	All price	#	Free	#	TWD 1-1000	#	TWD 1000-2000	#	TWD 2000-3000	#	Upon TWD 3000	#	Time	#	All time	#	Today	#	In a week	#	In a month	#	In two months	#	
