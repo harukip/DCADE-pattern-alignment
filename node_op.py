@@ -1,4 +1,5 @@
 import suffix_tree
+import numpy as np
 def encode_node(encode_col, encode_option, length):
     index = 65
     whole_string = ""
@@ -135,3 +136,30 @@ def get_all_seq(record_seg, segments):
                 seqs.append(segments[record_seg[seg_idx][0]][pos[idx]:pos[idx]+max_len[seg_idx]+4])
         all_seqs.append(seqs)
     return all_seqs
+
+def to_vector(all_seqs):
+    vectors = []
+    for seqs in range(len(all_seqs)):
+        char_dict = {}
+        for seq in range(len(all_seqs[seqs])):
+            for char in all_seqs[seqs][seq]:
+                if char not in char_dict.keys():
+                    char_dict[char] = 1
+        #print(list(char_dict.keys()))
+        vector = []
+        for seq in range(len(all_seqs[seqs])):
+            char_count_dict = {}
+            for char in all_seqs[seqs][seq]:
+                if char not in char_count_dict.keys():
+                    char_count_dict[char] = 1
+                else: char_count_dict[char] += 1
+            vec_tmp = []
+            for key in char_dict.keys():
+                if key not in char_count_dict.keys():
+                    vec_tmp.append(0)
+                else: vec_tmp.append(char_count_dict[key])
+            vec_tmp = np.array(vec_tmp)
+            vector.append(vec_tmp)
+        vector = np.array(vector)
+        vectors.append(vector)
+    return np.array(vectors)
