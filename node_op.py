@@ -162,4 +162,4 @@ def to_vector(all_seqs):
             vector.append(vec_tmp)
         vector = np.array(vector)
         vectors.append(vector)
-    return np.array(vectors)
+    return vectors
