@@ -130,3 +130,6 @@ dmypy.json
 
 # GBM file
 /GBM/test.csv
+
+# websites folder
+/websites 
