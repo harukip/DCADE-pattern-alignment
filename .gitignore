@@ -128,5 +128,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# GBM training file
-./GBM/encode_data.csv
+# GBM file
+/GBM/test.csv
