@@ -31,7 +31,7 @@ current_path = os.path.join(os.path.expanduser("~"), "Desktop", "DCADE_Pattern_A
                             "websites", "N11")
 #---------------------
 config = sys.argv
-if len(config) == 5:
+if len(config) != 3:
     # .py extractor_name {"-b/-c"(brute or candidate)} {"-nd"(don't drop)} {"-m/-t"}
     find_encode = 1
     current_path = os.path.join(".", "websites", config[1])
