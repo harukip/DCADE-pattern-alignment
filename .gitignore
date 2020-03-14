@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 
 # GBM training file
-encode_data.csv
+./GBM/encode_data.csv
