@@ -24,30 +24,40 @@ find_encode = 1
 brute = 1
 model_predict = 1
 drop_last = 1
-seg_method = 0
+seg_method = 1
 MINIMAL_REPEAT = 5
 IGNORE_LEN = 5
-"""
-Variable: find_encode
-- 0: Use specified encode
-- 1: Choose from candidate
---------------------------
-Variable: brute (Loop all combination)
-- 0: Don't loop
-- 1: loop
---------------------------
-Variable: drop_last (Last pattern handling)
-- 0: handle it
-- 1: Only do once MSA
---------------------------
-Variable: seg_method (Segmentation method)
-- 0: Unique MT
-- 1: Split by top repeat
---------------------------
-Variable: IGNORE_LEN (loop ignore_len from 0~IGNORE_LEN)
---------------------------
-Variable: MINIMAL_REPEAT (Minimal repeat count)
-"""
+current_path = os.path.join(os.path.expanduser("~"), "Desktop", "DCADE_Pattern_Alignment", 
+                            "websites", "N11")
+#---------------------
+config = sys.argv
+if len(config) == 5:
+    # .py extractor_name {"-b/-c"(brute or candidate)} {"-nd"(don't drop)} {"-m/-t"}
+    find_encode = 1
+    current_path = os.path.join(".", "websites", config[1])
+    if "-c" in config: brute = 0
+    if "-nd" in config: drop_last = 0
+    if "-t" in config: seg_method = 0
+
+#Variable: find_encode
+#- 0: Use specified encode
+#- 1: Choose from candidate
+#--------------------------
+#Variable: brute (Loop all combination)
+#- 0: Don't loop
+#- 1: loop
+#--------------------------
+#Variable: drop_last (Last pattern handling)
+#- 0: handle it
+#- 1: Only do once MSA
+#--------------------------
+#Variable: seg_method (Segmentation method)
+#- 0: Unique MT
+#- 1: Split by top repeat
+#--------------------------
+#Variable: IGNORE_LEN (loop ignore_len from 0~IGNORE_LEN)
+#--------------------------
+#Variable: MINIMAL_REPEAT (Minimal repeat count)
 
 
 # In[ ]:
@@ -66,11 +76,6 @@ sys.setrecursionlimit(1000000)
 # In[ ]:
 
 
-#current_path = os.path.join(os.path.expanduser("~"), "jupyter", "Fix_DCADE_Output")
-#current_path = os.path.join(os.path.expanduser("~"), "Desktop", "DCADE", "TAM")
-#current_path = os.path.join(os.path.expanduser("~"), "Desktop", "test", "1")
-current_path = os.path.join(os.path.expanduser("~"), "Desktop", "DCADE_Pattern_Alignment", "websites", "N17")
-#current_path = os.path.join(os.path.expanduser("~"), "Desktop", "DCADE", "RISE_", "R01")
 input_file_path = os.path.join(current_path, "TableA.txt")
 print(input_file_path)
 
@@ -123,6 +128,7 @@ print("Unique MT's index:\n", unique_mt)
 best = {'option':'000000000', 'score': 0, 'ignore_len': 0}
 if find_encode == 1:
     # Features
+    #---------------------
     encode = []
     set_num = []
     rep_time = []
@@ -139,7 +145,6 @@ if find_encode == 1:
                 if len(node_op.find_all_indexes(tmp, '1')) > 3:
                     candidate.append(tmp)
         else:
-            #candidate = ['000110100', '000101010', '000101001']
             with open('./good_encode.txt', 'rb') as f:
                 candidate = pickle.load(f)
         total_progress = len(candidate)
@@ -148,7 +153,7 @@ if find_encode == 1:
         line_count = 0
         check_dict = {}
         for option in candidate:
-            encode.append(str(option)) ####################
+            encode.append(str(option))
             ign_len.append(ignore_len)
             progress += 1
             while (progress/float(total_progress))*100 >= progress_line[line_count]:
@@ -172,12 +177,12 @@ if find_encode == 1:
 
             all_seqs = node_op.get_all_seq(record_seg, segments)
             set_num.append(len(record_seg))
-            if len(record_seg) > 0:# and str(all_seqs) not in check_dict.keys():#########
+            if len(record_seg) > 0:
                 check_dict[str(all_seqs)] = 1
                 seq_score = []
-                total_repeat = 0######################
-                total_delta = 0#################
-                label_check = 0###################
+                total_repeat = 0
+                total_delta = 0
+                label_check = 0
                 for seg_idx in range(len(all_seqs)):
                     appear = {}
                     score = 0.0
@@ -188,14 +193,17 @@ if find_encode == 1:
                             length_min_max[0] = len(pattern)
                         if len(pattern) > length_min_max[1]:
                             length_min_max[1] = len(pattern)
-                    total_repeat += repeat_time######################
-                    total_delta += length_min_max[1] - length_min_max[0]###########
+                    total_repeat += repeat_time
+                    total_delta += length_min_max[1] - length_min_max[0]
                     score = np.amin(cosine_similarity(node_op.to_vector(all_seqs)[seg_idx]))
-                    """
-                    This line for output train label
-                    if repeat_time > 15 and repeat_time < 23 and score >= 0.41:#####################
-                        label_check = 1######################"""
-                    # Limitation
+                    
+                    #This line for output train label
+                    #---------------------
+                    #if repeat_time > 15 and repeat_time < 23 and score >= 0.41:
+                    #    label_check = 1
+                    #---------------------
+                    
+                    # Heuristic Limitation
                     ignore = 0
                     if length_min_max[1] == 1 or length_min_max[0] == 1:
                         seq_score.append(score * 0.1)
@@ -214,17 +222,17 @@ if find_encode == 1:
                 rep_time.append(total_repeat/len(record_seg))
                 data_block_delta.append(total_delta/len(record_seg))
                 total_score = 0
-                print(option)
+                #print(option)
                 for s in range(len(record_seg)):
-                    print(s, record_seg[s][1], "\t%.2f" %(seq_score[s]))
+                    #print(s, record_seg[s][1], "\t%.2f" %(seq_score[s]))
                     total_score += seq_score[s]
                 if 0.0 in seq_score: total_score = 0
                 #print(all_seqs)
                 average = total_score/len(record_seg)
                 similarity.append(average)
                 #average = min(seq_score)
-                print("Set count:", len(record_seg), "Score:", "%.2f" %(average))
-                print('-'*80)
+                #print("Set count:", len(record_seg), "Score:", "%.2f" %(average))
+                #print('-'*80)
                 if label_check: label.append(1)
                 else: label.append(0)
                 if average >= best['score']:
@@ -257,7 +265,7 @@ len(encode)
 
 
 data.to_csv("./GBM/test.csv")
-print(data)
+#print(data)
 
 
 # In[ ]:
@@ -266,7 +274,7 @@ print(data)
 data = pd.read_csv("./GBM/test.csv", index_col=0)
 predict_encode, predict_ign_len = GBM.GBM_predict(data)
 predict_encode = binary(str(predict_encode), 9)
-print(predict_encode, predict_ign_len)
+#print(predict_encode, predict_ign_len)
 
 
 # In[ ]:
@@ -280,30 +288,27 @@ if find_encode == 1:
         encode_option = best['option']
         ignore_len = best['ignore_len']
 else:
-    #encode_option = '000110100'
     encode_option = '000101001'
     ignore_len = 3
 
 encode_col = [tag, ids, classes, pathid, parentid, tecid, cecid, encoding, col]
-"""
-Node op
-==================================================
-"""
+
+#Node op
+#==================================================
 node_encode = node_op.encode_node(encode_col, encode_option, len(pathid))
 whole_string = node_encode[0]
 node_dict = node_encode[1] # code -> node num
 index_dict = node_encode[2] # code -> first index
-"""
-===================================================
-"""
-print("Example: ")
+#===================================================
 
-for col_num in range(len(encode_col)):
-    if encode_option[col_num] == '1':
-        print(encode_col[col_num][node], end='')
+#print("Example: ")
+
+#for col_num in range(len(encode_col)):
+#    if encode_option[col_num] == '1':
+#        print(encode_col[col_num][node], end='')
+#print("\nConvert to Unicode String:\n", whole_string)
 inv_node_dict = {v: k for k, v in node_dict.items()} # node num -> code
 inv_index_dict = {v: k for k, v in index_dict.items()} # index num -> code
-print("\nConvert to Unicode String:\n", whole_string)
 
 
 # # Segment whole string
@@ -322,7 +327,7 @@ if seg_method == 1:
 
 
 all_seqs = node_op.get_all_seq(record_seg, segments)
-print(all_seqs)
+#print(all_seqs)
 
 
 # # MSA
@@ -334,7 +339,7 @@ import cstar
 removed_whole_string = whole_string
 for seg_idx in range(len(all_seqs)):
     json_result = []
-    print("First round MSA\n", "="*100)
+    #print("First round MSA\n", "="*100)
     scores = [5, -4, -3] # matchScore, mismatchScore, gapScore
     if len(all_seqs[seg_idx][:-1]) == 1:
         msa = all_seqs[seg_idx][:-1]
@@ -353,7 +358,7 @@ for seg_idx in range(len(all_seqs)):
         else: pass
     for i in all_seqs[seg_idx][:-1]: print(i, "\n\t\t-> ", trans_dict[i])
     if drop_last == 0:
-        print('='*100, "\nSecond round MSA\n")
+        #print('='*100, "\nSecond round MSA\n")
         msa_2 = cstar.CenterStar(scores, msa+[all_seqs[seg_idx][-1]]).msa()
         trans_dict_2 = {}
 
@@ -368,7 +373,7 @@ for seg_idx in range(len(all_seqs)):
             trans_dict_2[i] = trans_dict_2[i][:end_idx+1]
             tmp = trans_dict_2[i][:end_idx+1].replace('-', '')
             removed_whole_string = removed_whole_string.replace(tmp, '-'*len(tmp))
-            print(i, "\n\t\t-> ", trans_dict_2[i])
+            #print(i, "\n\t\t-> ", trans_dict_2[i])
 
         json_schema = [{} for i in range(len(trans_dict_2[list(trans_dict_2.keys())[0]]))]
         schema_check = [0 for i in range(len(trans_dict_2[list(trans_dict_2.keys())[0]]))]
@@ -515,7 +520,7 @@ if best['option'] not in candidate and brute == 1:
 # In[ ]:
 
 
-print(candidate)
+#print(candidate)
 
 
 # In[ ]:
@@ -553,10 +558,10 @@ print(record_seg)
 # In[ ]:
 
 
-cols = ["tag", "ids", "classes", "pathid", "parentid", "tecid", "cecid", "encoding", "col"]
-for c in range(len(best['option'])):
-    if best['option'][c] == '1':
-        print(cols[c])
+#cols = ["tag", "ids", "classes", "pathid", "parentid", "tecid", "cecid", "encoding", "col"]
+#for c in range(len(best['option'])):
+#    if best['option'][c] == '1':
+#        print(cols[c])
 
 
 # In[ ]:
