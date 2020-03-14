@@ -32,7 +32,7 @@ current_path = os.path.join(os.path.expanduser("~"), "Desktop", "DCADE_Pattern_A
 #---------------------
 config = sys.argv
 if len(config) != 3:
-    # .py extractor_name {"-b/-c"(brute or candidate)} {"-nd"(don't drop)} {"-m/-t"}
+    # DCADE_Pattern_Alignment.py name {"-c"(candidate)} {"-nd"(no drop)} {"-t"(Segment by TopRepeat)}
     find_encode = 1
     current_path = os.path.join(".", "websites", config[1])
     if "-c" in config: brute = 0
@@ -510,10 +510,10 @@ with open(os.path.join(current_path, "SchemaTableA.json"), 'w') as json_file:
 
 with open('./good_encode.txt', 'rb') as f:
     candidate = pickle.load(f)
-if best['option'] not in candidate and brute == 1:
+if encode_option not in candidate and brute == 1:
     with open('./good_encode.txt', 'wb') as f:
-        candidate.append(best['option'])
-        print("Append:", best['option'])
+        candidate.append(encode_option)
+        print("Append:", encode_option)
         pickle.dump(candidate, f)
 
 
@@ -534,7 +534,7 @@ if brute == 1:
 # In[ ]:
 
 
-#candidate = candidate[:-1]
+#candidate = candidate[0]
 
 
 # In[ ]:
