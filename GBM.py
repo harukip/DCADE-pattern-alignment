@@ -17,10 +17,10 @@ from glob import glob
 
 def GBM_predict(data_name, model_name):
     import pickle
-    X = pd.read_csv(os.path.join(".", "GBM", data_name+".csv", index_col=0))
+    X = pd.read_csv(os.path.join(".", "GBM", data_name+".csv"), index_col=0)
     ignore_cols = ['encode', 'rep_time', 'ign_len']
     X.drop(['label'], axis=1, inplace=True)
-    with open(os.path.join(".", "GBM", model_name+".dat", 'rb')) as f:
+    with open(os.path.join(".", "GBM", model_name+".dat"), 'rb') as f:
         model = pickle.load(f)
     numeric_cols = [cname for cname in X.columns if X[cname].dtype in ['int64', 'float64'] and cname not in ignore_cols]
     X_test = X[numeric_cols].copy()
@@ -37,6 +37,7 @@ def GBM_predict(data_name, model_name):
 
 def train_data_prepare():
     files = glob(os.path.join(".", "GBM", "train*"))
+    print("files:", len(files))
     train = pd.DataFrame()
     for f in files:
         new_file = pd.read_csv(f, index_col=0)
@@ -75,7 +76,7 @@ def train_model(X):
 
 def save_model(model, model_name):
     import pickle
-    with open(os.path.join(".", "GBM", model_name+".dat", 'wb')) as f:
+    with open(os.path.join(".", "GBM", model_name+".dat"), 'wb') as f:
         pickle.dump(model, f)
 
 
@@ -85,7 +86,7 @@ def save_model(model, model_name):
 if __name__ == "__main__":
     data = train_data_prepare()
     model = train_model(data)
-    #save_model(model, "model")
+    #save_model(model, "4_model")
 
 
 # In[ ]:
