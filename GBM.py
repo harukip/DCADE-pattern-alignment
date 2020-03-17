@@ -9,6 +9,7 @@ import pandas as pd
 import os
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
+from glob import glob
 
 
 # In[ ]:
@@ -34,17 +35,19 @@ def GBM_predict(data_name, model_name):
 # In[ ]:
 
 
-def save_model(model, model_name):
-    import pickle
-    with open(os.path.join(".", "GBM", model_name+".dat", 'wb')) as f:
-        pickle.dump(model, f)
+def train_data_prepare():
+    files = glob(os.path.join(".", "GBM", "train*"))
+    train = pd.DataFrame()
+    for f in files:
+        new_file = pd.read_csv(f, index_col=0)
+        train = pd.concat([train, new_file], ignore_index=True)
+    return train
 
 
 # In[ ]:
 
 
-if __name__ == "__main__":
-    X = pd.read_csv("./GBM/train_N17.csv", index_col=0)
+def train_model(X):
     y = X.label
     X.drop(['label'], axis=1, inplace=True)
     X_train_full, X_val_full, y_train, y_val = train_test_split(X, y, train_size=0.8, test_size=0.2, random_state=0)
@@ -64,6 +67,25 @@ if __name__ == "__main__":
     isgood = X['good_encode'] == 1
     filter_X = X[isgood]
     print(filter_X.sort_values(by='similarity', ascending=False).iloc[0])
+    return model
+
+
+# In[ ]:
+
+
+def save_model(model, model_name):
+    import pickle
+    with open(os.path.join(".", "GBM", model_name+".dat", 'wb')) as f:
+        pickle.dump(model, f)
+
+
+# In[ ]:
+
+
+if __name__ == "__main__":
+    data = train_data_prepare()
+    model = train_model(data)
+    #save_model(model, "model")
 
 
 # In[ ]:
