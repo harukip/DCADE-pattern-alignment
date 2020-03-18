@@ -58,7 +58,7 @@ def train_model(X):
     X_valid = X_val_full[numeric_cols].copy()
     
     model = XGBClassifier(random_state=0)
-    model.fit(X_train, y_train)
+    model.fit(X=X_train, y=y_train, eval_set=[(X_valid, y_val)], early_stopping_rounds=3)
     y_pred = model.predict(X_valid)
     
     print("MAE:", mean_absolute_error(y_true=y_val, y_pred=y_pred))
@@ -86,7 +86,7 @@ def save_model(model, model_name):
 if __name__ == "__main__":
     data = train_data_prepare()
     model = train_model(data)
-    #save_model(model, "4_model")
+    save_model(model, "10_model")
 
 
 # In[ ]:
