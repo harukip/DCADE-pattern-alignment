@@ -9,16 +9,18 @@ import pandas as pd
 import os
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
+from glob import glob
 
 
 # In[ ]:
 
 
-def GBM_predict(X):
+def GBM_predict(data_name, model_name):
     import pickle
-    ignore_cols = ['encode', 'rep_time']
+    X = pd.read_csv(os.path.join(".", "GBM", data_name+".csv"), index_col=0)
+    ignore_cols = ['encode', 'rep_time', 'ign_len']
     X.drop(['label'], axis=1, inplace=True)
-    with open("./GBM/model.dat", 'rb') as f:
+    with open(os.path.join(".", "GBM", model_name+".dat"), 'rb') as f:
         model = pickle.load(f)
     numeric_cols = [cname for cname in X.columns if X[cname].dtype in ['int64', 'float64'] and cname not in ignore_cols]
     X_test = X[numeric_cols].copy()
@@ -33,18 +35,30 @@ def GBM_predict(X):
 # In[ ]:
 
 
-if __name__ == "__main__":
-    X = pd.read_csv("./GBM/encode_data.csv", index_col=0)
+def train_data_prepare():
+    files = glob(os.path.join(".", "GBM", "train*"))
+    print("files:", len(files))
+    train = pd.DataFrame()
+    for f in files:
+        new_file = pd.read_csv(f, index_col=0)
+        train = pd.concat([train, new_file], ignore_index=True)
+    return train
+
+
+# In[ ]:
+
+
+def train_model(X):
     y = X.label
     X.drop(['label'], axis=1, inplace=True)
     X_train_full, X_val_full, y_train, y_val = train_test_split(X, y, train_size=0.8, test_size=0.2, random_state=0)
-    ignore_cols = ['encode', 'rep_time']
+    ignore_cols = ['encode', 'rep_time', 'ign_len']
     numeric_cols = [cname for cname in X_train_full.columns if X_train_full[cname].dtype in ['int64', 'float64'] and cname not in ignore_cols]   
     X_train = X_train_full[numeric_cols].copy()
     X_valid = X_val_full[numeric_cols].copy()
     
     model = XGBClassifier(random_state=0)
-    model.fit(X_train, y_train)
+    model.fit(X=X_train, y=y_train, eval_set=[(X_valid, y_val)], early_stopping_rounds=3)
     y_pred = model.predict(X_valid)
     
     print("MAE:", mean_absolute_error(y_true=y_val, y_pred=y_pred))
@@ -54,21 +68,25 @@ if __name__ == "__main__":
     isgood = X['good_encode'] == 1
     filter_X = X[isgood]
     print(filter_X.sort_values(by='similarity', ascending=False).iloc[0])
+    return model
 
 
 # In[ ]:
 
 
-"""import pickle
-with open("./GBM/model.dat", 'wb') as f:
-    pickle.dump(model, f)"""
+def save_model(model, model_name):
+    import pickle
+    with open(os.path.join(".", "GBM", model_name+".dat"), 'wb') as f:
+        pickle.dump(model, f)
 
 
 # In[ ]:
 
 
-"""X = pd.read_csv("./GBM/encode_data.csv", index_col=0)
-print(GBM_predict(X))"""
+if __name__ == "__main__":
+    data = train_data_prepare()
+    model = train_model(data)
+    save_model(model, "10_model")
 
 
 # In[ ]:
