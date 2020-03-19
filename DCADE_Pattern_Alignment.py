@@ -23,7 +23,7 @@ import multiprocessing
 def get_good_encode():
     d = GBM.train_data_prepare()
     is_good = d['label'] == 1
-    return d[is_good]['encode']
+    return d[is_good]['encode'].unique()
 
 
 # In[ ]:
