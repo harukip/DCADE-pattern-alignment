@@ -28,8 +28,11 @@ def GBM_predict(data_name, model_name):
     X['good_encode'] = y_test
     isgood = X['good_encode'] == 1
     filter_X = X[isgood]
-    best = filter_X.sort_values(by='similarity', ascending=False).iloc[0]
-    return int(best['encode']), int(best['ign_len'])
+    good_result = filter_X.sort_values(by='similarity', ascending=False)
+    if good_result.size != 0:
+        best = good_result.iloc[0]
+        return int(best['encode']), int(best['ign_len'])
+    else: return 0, 0
 
 
 # In[ ]:
