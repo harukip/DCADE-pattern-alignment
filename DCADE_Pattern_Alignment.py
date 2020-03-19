@@ -20,18 +20,10 @@ import multiprocessing
 # In[ ]:
 
 
-def get_good_encode():
-    d = GBM.train_data_prepare()
-    is_good = d['label'] == 1
-    return d[is_good]['encode'].unique()
-
-
-# In[ ]:
-
-
 find_encode = 1
 brute = 1
 model_predict = 1
+train = 0
 drop_last = 1
 seg_method = 1
 MINIMAL_REPEAT = 5
@@ -47,6 +39,7 @@ if config[0] == "DCADE_Pattern_Alignment.py":
     if "-c" in config: brute = 0
     if "-nd" in config: drop_last = 0
     if "-mt" in config: seg_method = 0
+    if "-train" in config: train = 1
 
 #Variable: find_encode
 #- 0: Use specified encode
@@ -67,6 +60,15 @@ if config[0] == "DCADE_Pattern_Alignment.py":
 #Variable: IGNORE_LEN (loop ignore_len from 0~IGNORE_LEN)
 #--------------------------
 #Variable: MINIMAL_REPEAT (Minimal repeat count)
+
+
+# In[ ]:
+
+
+def get_good_encode():
+    d = GBM.train_data_prepare()
+    is_good = d['label'] == 1
+    return d[is_good]['encode'].unique()
 
 
 # In[ ]:
@@ -164,10 +166,12 @@ def get_candidate():
                 if len(node_op.find_all_indexes(tmp, '1')) > 3:
                     candidate.append(tmp)
         else:
-            #for i in range(1, 512):
-                #candidate.append(binary('{0:b}'.format(i), 9))
-            for i in get_good_encode():
-                candidate.append(binary(str(i), 9))
+            if train == 1:
+                for i in range(1, 512):
+                    candidate.append(binary('{0:b}'.format(i), 9))
+            else:
+                for i in get_good_encode():
+                    candidate.append(binary(str(i), 9))
     else:
         with open('./good_encode.txt', 'rb') as f:
             candidate = pickle.load(f)
@@ -398,6 +402,7 @@ def main():
         # Predict test file by pre-trained model
         
         predict_encode, predict_ign_len = GBM.GBM_predict("test", "10_model")
+        if train == 1: return 3
         if predict_encode == 0: return 2
         predict_encode = binary(str(predict_encode), 9)
     else: best = auto_brute(lock, jobs, done, encode_col, unique_mt, MINIMAL_REPEAT, model_predict)
@@ -626,6 +631,7 @@ if __name__ == "__main__":
     s = main()
     if s == 1: print("MC Occur, PASS")
     elif s == 2: print("Model no suggest")
+    elif s == 3: print("Train file created, name: test.csv")
 
 
 # In[ ]:
