@@ -20,6 +20,15 @@ import multiprocessing
 # In[ ]:
 
 
+def get_good_encode():
+    d = GBM.train_data_prepare()
+    is_good = d['label'] == 1
+    return d[is_good]['encode']
+
+
+# In[ ]:
+
+
 find_encode = 1
 brute = 1
 model_predict = 1
@@ -155,8 +164,10 @@ def get_candidate():
                 if len(node_op.find_all_indexes(tmp, '1')) > 3:
                     candidate.append(tmp)
         else:
-            for i in range(1, 512):
-                candidate.append(binary('{0:b}'.format(i), 9))
+            #for i in range(1, 512):
+                #candidate.append(binary('{0:b}'.format(i), 9))
+            for i in get_good_encode():
+                candidate.append(binary(str(i), 9))
     else:
         with open('./good_encode.txt', 'rb') as f:
             candidate = pickle.load(f)
