@@ -406,7 +406,7 @@ def main():
         
         predict_encode, predict_ign_len = GBM.GBM_predict("test", "10_model")
         if train == 1:
-            data.to_csv("./GBM/need_label" + site_name + ".csv")
+            data.to_csv("./GBM/need_label_" + site_name + ".csv")
             return 3
         if predict_encode == 0: return 2
         predict_encode = binary(str(predict_encode), 9)
@@ -636,9 +636,9 @@ if __name__ == "__main__":
     s = main()
     if s == 1: print("MC Occur, PASS")
     elif s == 2:
-        os.system("mv ./GBM/test.csv ./GBM/need_label" + site_name + ".csv")
+        os.system("mv ./GBM/test.csv ./GBM/need_label_" + site_name + ".csv")
         print("Model no suggest, rename test file to need_label.csv")
-    elif s == 3: print("Train file created, name: need_label" + site_name + ".csv")
+    elif s == 3: print("Train file created, name: need_label_" + site_name + ".csv")
 
 
 # In[ ]:
