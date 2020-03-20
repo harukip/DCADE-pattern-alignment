@@ -28,7 +28,7 @@ drop_last = 1
 seg_method = 1
 MINIMAL_REPEAT = 5
 IGNORE_LEN = 5
-current_path = os.path.join(".", "websites", "8")
+current_path = os.path.join(".", "websites", "180")
 #---------------------
 config = sys.argv
 if config[0] == "DCADE_Pattern_Alignment.py":
@@ -330,7 +330,7 @@ def auto_brute(lock, jobs, done, encode_col, unique_mt, MINIMAL_REPEAT, model_pr
 
         total_progress = len(candidate * (IGNORE_LEN+1))
         
-        num_cpus = int(multiprocessing.cpu_count()-1)
+        num_cpus = int(multiprocessing.cpu_count())
         processes = []
         for cpu in range(num_cpus):
             p = multiprocessing.Process(target=process_job, args=(lock, jobs, done, encode_col, unique_mt, best, MINIMAL_REPEAT, model_predict))
@@ -631,7 +631,9 @@ def main():
 if __name__ == "__main__":
     s = main()
     if s == 1: print("MC Occur, PASS")
-    elif s == 2: print("Model no suggest")
+    elif s == 2:
+        os.system("mv ./GBM/test.csv ./GBM/need_label.csv")
+        print("Model no suggest, rename test file to need_label.csv")
     elif s == 3: print("Train file created, name: need_label.csv")
 
 
