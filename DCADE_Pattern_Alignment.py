@@ -36,6 +36,7 @@ if config[0] == "DCADE_Pattern_Alignment.py":
     # DCADE_Pattern_Alignment.py name {"-c"(candidate)} {"-nd"(no drop)} {"-t"(Segment by TopRepeat)}
     find_encode = 1
     current_path = os.path.join(".", "websites", config[1])
+    site_name = config[1]
     if "-c" in config: brute = 0
     if "-nd" in config: drop_last = 0
     if "-mt" in config: seg_method = 0
@@ -332,11 +333,14 @@ def auto_brute(lock, jobs, done, encode_col, unique_mt, MINIMAL_REPEAT, model_pr
         
         num_cpus = int(multiprocessing.cpu_count())
         processes = []
+        
+        print("Worker {", end='')
         for cpu in range(num_cpus):
             p = multiprocessing.Process(target=process_job, args=(lock, jobs, done, encode_col, unique_mt, best, MINIMAL_REPEAT, model_predict))
             p.start()
             processes.append(p)
-            print("Worker", cpu, "start")
+            print(cpu, end=' ')
+        print("} Start")
         
         job_count = 0
         for ignore_len in range(IGNORE_LEN+1):
@@ -402,7 +406,7 @@ def main():
         
         predict_encode, predict_ign_len = GBM.GBM_predict("test", "10_model")
         if train == 1:
-            data.to_csv("./GBM/need_label.csv")
+            data.to_csv("./GBM/need_label" + site_name + ".csv")
             return 3
         if predict_encode == 0: return 2
         predict_encode = binary(str(predict_encode), 9)
@@ -632,9 +636,9 @@ if __name__ == "__main__":
     s = main()
     if s == 1: print("MC Occur, PASS")
     elif s == 2:
-        os.system("mv ./GBM/test.csv ./GBM/need_label.csv")
+        os.system("mv ./GBM/test.csv ./GBM/need_label" + site_name + ".csv")
         print("Model no suggest, rename test file to need_label.csv")
-    elif s == 3: print("Train file created, name: need_label.csv")
+    elif s == 3: print("Train file created, name: need_label" + site_name + ".csv")
 
 
 # In[ ]:
