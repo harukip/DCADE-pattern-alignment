@@ -330,7 +330,7 @@ def auto_brute(lock, jobs, done, encode_col, unique_mt, MINIMAL_REPEAT, model_pr
 
         total_progress = len(candidate * (IGNORE_LEN+1))
         
-        num_cpus = int(multiprocessing.cpu_count())
+        num_cpus = int(multiprocessing.cpu_count()-1)
         processes = []
         for cpu in range(num_cpus):
             p = multiprocessing.Process(target=process_job, args=(lock, jobs, done, encode_col, unique_mt, best, MINIMAL_REPEAT, model_predict))
@@ -344,17 +344,7 @@ def auto_brute(lock, jobs, done, encode_col, unique_mt, MINIMAL_REPEAT, model_pr
                 jobs.put((option, ignore_len))
                 job_count += 1
         
-        jobs.join()
-        print("Job All CLear")
-        
-        for _ in range(num_cpus):
-            jobs.put(None)
-        
-        for worker in processes:
-            worker.terminate()
-            worker.join()
-        
-        while not done.empty():
+        for i in range(job_count):
             result = done.get()
             encode.append(result[0])
             ign_len.append(result[1])
@@ -366,7 +356,16 @@ def auto_brute(lock, jobs, done, encode_col, unique_mt, MINIMAL_REPEAT, model_pr
             top_rep_variance.append(result[7])
             top_rep_overlap.append(result[8])
             label.append(result[9])
-            
+        
+        jobs.join()
+        print("Job All CLear")
+        
+        for _ in range(num_cpus):
+            jobs.put(None)
+        
+        for worker in processes:
+            worker.terminate()
+            worker.join()
         
         data = pd.DataFrame(
             np.transpose(
@@ -402,7 +401,9 @@ def main():
         # Predict test file by pre-trained model
         
         predict_encode, predict_ign_len = GBM.GBM_predict("test", "10_model")
-        if train == 1: return 3
+        if train == 1:
+            data.to_csv("./GBM/need_label.csv")
+            return 3
         if predict_encode == 0: return 2
         predict_encode = binary(str(predict_encode), 9)
     else: best = auto_brute(lock, jobs, done, encode_col, unique_mt, MINIMAL_REPEAT, model_predict)
@@ -631,7 +632,7 @@ if __name__ == "__main__":
     s = main()
     if s == 1: print("MC Occur, PASS")
     elif s == 2: print("Model no suggest")
-    elif s == 3: print("Train file created, name: test.csv")
+    elif s == 3: print("Train file created, name: need_label.csv")
 
 
 # In[ ]:
