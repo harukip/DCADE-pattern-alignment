@@ -28,7 +28,7 @@ drop_last = 1
 seg_method = 1
 MINIMAL_REPEAT = 5
 IGNORE_LEN = 5
-current_path = os.path.join(".", "websites", "180")
+current_path = os.path.join(".", "websites", "2")
 #---------------------
 config = sys.argv
 if config[0] == "DCADE_Pattern_Alignment.py":
@@ -475,9 +475,10 @@ def main():
             json_schema = [{} for i in range(len(trans_dict[list(trans_dict.keys())[0]]))]
             schema_check = [0 for i in range(len(trans_dict[list(trans_dict.keys())[0]]))]
 
-        with open(os.path.join(current_path, "Set-" + str(seg_idx) + ".txt"), 'w', encoding='utf-8') as file:
+        # Set txt & json
+        with open(os.path.join(current_path, "Set-" + str(seg_idx+1) + ".txt"), 'w', encoding='utf-8') as file:
             for page in range(len(others)):
-                json_page = []
+                #json_page = []
                 output_dict = {} # Record which pattern is used
                 if drop_last == 1:
                     length = len(all_seqs[seg_idx]) - 1
@@ -486,7 +487,8 @@ def main():
                 for s in range(length):
                     write_tmp = []
                     json_set = []
-                    write_tmp.append(str(page) + "-" + str(seg_idx) + "-" + str(s) + "\t")
+                    write_tmp.append(str(seg_idx+1) + "-" + str(page) + "-" + str(s+1) + "\t")
+                    json_set.append(str(seg_idx+1) + "-" + str(page) + "-" + str(s+1))
                     tmp = node_op.find_all_indexes(whole_string, record_seg[seg_idx][1][1])
                     if record_seg[seg_idx][1][1] not in output_dict.keys():
                         output_dict[record_seg[seg_idx][1][1]] = 0
@@ -506,10 +508,7 @@ def main():
                                     schema_check[c] = 1
                                     json_schema[c]["PathId"] = pathid[tmp[output_dict[record_seg[seg_idx][1][1]]]+idx]
                                     json_schema[c]["ParentId"] = parentid[tmp[output_dict[record_seg[seg_idx][1][1]]]+idx].split(':')[0].replace('\"', '')
-                                    if encoding[tmp[output_dict[record_seg[seg_idx][1][1]]]+idx] == ' ':
-                                        json_schema[c]["Encoding"] = ''
-                                    else:
-                                        json_schema[c]["Encoding"] = int(encoding[tmp[output_dict[record_seg[seg_idx][1][1]]]+idx])
+                                    json_schema[c]["Encoding"] = encoding[tmp[output_dict[record_seg[seg_idx][1][1]]]+idx]
                                     json_schema[c]["CECId"] = cecid[tmp[output_dict[record_seg[seg_idx][1][1]]]+idx]
                                     json_schema[c]["TECId"] = tecid[tmp[output_dict[record_seg[seg_idx][1][1]]]+idx]
                                     json_schema[c]["ColType"] = col[tmp[output_dict[record_seg[seg_idx][1][1]]]+idx]
@@ -530,10 +529,7 @@ def main():
                                     schema_check[c] = 1
                                     json_schema[c]["PathId"] = pathid[tmp[output_dict[record_seg[seg_idx][1][1]]]+idx]
                                     json_schema[c]["ParentId"] = parentid[tmp[output_dict[record_seg[seg_idx][1][1]]]+idx].split(':')[0].replace('\"', '')
-                                    if encoding[tmp[output_dict[record_seg[seg_idx][1][1]]]+idx] == ' ':
-                                        json_schema[c]["Encoding"] = ''
-                                    else:
-                                        json_schema[c]["Encoding"] = int(encoding[tmp[output_dict[record_seg[seg_idx][1][1]]]+idx])
+                                    json_schema[c]["Encoding"] = encoding[tmp[output_dict[record_seg[seg_idx][1][1]]]+idx]
                                     json_schema[c]["CECId"] = cecid[tmp[output_dict[record_seg[seg_idx][1][1]]]+idx]
                                     json_schema[c]["TECId"] = tecid[tmp[output_dict[record_seg[seg_idx][1][1]]]+idx]
                                     json_schema[c]["ColType"] = col[tmp[output_dict[record_seg[seg_idx][1][1]]]+idx]
@@ -542,11 +538,12 @@ def main():
                             for word in write_tmp:
                                 file.write(word)
                             file.write('\n')
-                    json_page.append(json_set)
-                json_result.append(json_page)
-        with open(os.path.join(current_path, "Set-" + str(seg_idx) + ".json"), 'w') as json_file:
+                    #json_page.append(json_set)
+                    json_result.append(json_set)
+                #json_result.append(json_page)
+        with open(os.path.join(current_path, "Set-" + str(seg_idx+1) + ".json"), 'w') as json_file:
             json.dump(json_result, json_file)
-        with open(os.path.join(current_path, "Set-" + str(seg_idx) + "_schema.json"), 'w') as json_file:
+        with open(os.path.join(current_path, "SchemaSet-" + str(seg_idx+1) + ".json"), 'w') as json_file:
             json.dump(json_schema, json_file)
     
     # Modified TableA json Output
@@ -564,12 +561,9 @@ def main():
                     check = True
                     set_count += 1
                     json_page.append(str(set_count) + '-' + str(page))
-                    schema_dict["PathId"] = ""
-                    schema_dict["ParentId"] = ""
                     schema_dict["Encoding"] = -1
-                    schema_dict["CECId"] = ""
-                    schema_dict["TECId"] = ""
-                    schema_dict["ColType"] = "MR"
+                    schema_dict["TECId"] = "1"
+                    schema_dict["ColType"] = "Set-" + str(set_count)
                     json_schema.append(schema_dict)
                 else: pass
             else:
