@@ -472,6 +472,10 @@ def main():
             json_schema = [{} for i in range(len(trans_dict_2[list(trans_dict_2.keys())[0]]))]
             schema_check = [0 for i in range(len(trans_dict_2[list(trans_dict_2.keys())[0]]))]
         else:
+            for i in all_seqs[seg_idx][:-1]:
+                tmp = trans_dict[i]
+                removed_whole_string = removed_whole_string.replace(tmp, '-'*len(tmp))
+                #print(i, "\n\t\t-> ", trans_dict_2[i])
             json_schema = [{} for i in range(len(trans_dict[list(trans_dict.keys())[0]]))]
             schema_check = [0 for i in range(len(trans_dict[list(trans_dict.keys())[0]]))]
 
@@ -548,6 +552,7 @@ def main():
     
     # Modified TableA json Output
 
+    print(removed_whole_string)
     json_table = []
     json_schema = []
     for page in range(len(others)):
