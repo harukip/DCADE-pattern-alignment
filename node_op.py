@@ -30,9 +30,11 @@ def segment_mt(unique_mt, whole_string):
     segments = list(filter(None, segments))
     return segments
 
-def mt_record_seg(segments, ignore_len, index_dict, inv_node_dict, MINIMAL_REPEAT):
+def mt_record_seg(lock, segments, ignore_len, index_dict, inv_node_dict, MINIMAL_REPEAT):
     record_seg = []
+    #lock.acquire()
     trees = [suffix_tree.Tree({'A': seg}) for seg in segments]
+    #lock.release()
     for tree_idx in range(len(trees)):
         tree = trees[tree_idx]
         group = {}
@@ -56,13 +58,15 @@ def mt_record_seg(segments, ignore_len, index_dict, inv_node_dict, MINIMAL_REPEA
             record_seg.append((tree_idx, top_repeats))
     return record_seg
 
-def segment_top(whole_string, ignore_len, index_dict, inv_node_dict, MINIMAL_REPEAT):
+def segment_top(lock, whole_string, ignore_len, index_dict, inv_node_dict, MINIMAL_REPEAT):
     segments = [whole_string]
     seg_len = 0
     record_seg = []
     while(len(segments) != seg_len):
         seg_len = len(segments)
+        #lock.acquire()
         trees = [suffix_tree.Tree({'A': seg}) for seg in segments]
+        #lock.release()
         for tree_idx in range(len(trees)):
             tree = trees[tree_idx]
             group = {}
@@ -71,19 +75,17 @@ def segment_top(whole_string, ignore_len, index_dict, inv_node_dict, MINIMAL_REP
                 if ignore_len > 0:
                     if len(path) <= ignore_len: continue
                 count = 0
-                rep_pattern_tree = suffix_tree.Tree({'A': str(path).replace(' ', '')})
-                if len(rep_pattern_tree.maximal_repeats()) == 0:
-                    for id_, path2 in tree.find_all (path):
-                        count += 1
-                    #print("Length: ", len(path), "Pattern: {", path, "}")
-                    #print("Count: ", count)
-                    if count > top_repeats[0]:
-                        top_repeats = (count, str(path).replace(' ', ''))
-                    if index_dict[inv_node_dict[ord(path[0])]] not in group.keys():
-                        group[index_dict[inv_node_dict[ord(path[0])]]] = []
-                        group[index_dict[inv_node_dict[ord(path[0])]]].append(path)
-                    else:
-                        group[index_dict[inv_node_dict[ord(path[0])]]].append(path)
+                for id_, path2 in tree.find_all (path):
+                    count += 1
+                #print("Length: ", len(path), "Pattern: {", path, "}")
+                #print("Count: ", count)
+                if count > top_repeats[0]:
+                    top_repeats = (count, str(path).replace(' ', ''))
+                if index_dict[inv_node_dict[ord(path[0])]] not in group.keys():
+                    group[index_dict[inv_node_dict[ord(path[0])]]] = []
+                    group[index_dict[inv_node_dict[ord(path[0])]]].append(path)
+                else:
+                    group[index_dict[inv_node_dict[ord(path[0])]]].append(path)
                 #print("\n", "="*50, "\n")
             if top_repeats[0] > MINIMAL_REPEAT and (tree_idx, top_repeats) not in record_seg:
                 record_seg.append((tree_idx, top_repeats))

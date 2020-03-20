@@ -129,7 +129,9 @@ dmypy.json
 .pyre/
 
 # GBM file
+/GBM/need_label.csv
 /GBM/test.csv
+/GBM/need_label*
 
 # folder
 /websites

@@ -4,7 +4,6 @@
 # In[ ]:
 
 
-import suffix_tree
 import pandas as pd
 import os
 import json
@@ -15,6 +14,7 @@ import sys
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import GBM
+import multiprocessing
 
 
 # In[ ]:
@@ -23,11 +23,12 @@ import GBM
 find_encode = 1
 brute = 1
 model_predict = 1
+train = 0
 drop_last = 1
 seg_method = 1
 MINIMAL_REPEAT = 5
 IGNORE_LEN = 5
-current_path = os.path.join(".", "websites", "2")
+current_path = os.path.join(".", "websites", "180")
 #---------------------
 config = sys.argv
 if config[0] == "DCADE_Pattern_Alignment.py":
@@ -35,9 +36,11 @@ if config[0] == "DCADE_Pattern_Alignment.py":
     # DCADE_Pattern_Alignment.py name {"-c"(candidate)} {"-nd"(no drop)} {"-t"(Segment by TopRepeat)}
     find_encode = 1
     current_path = os.path.join(".", "websites", config[1])
+    site_name = config[1]
     if "-c" in config: brute = 0
     if "-nd" in config: drop_last = 0
     if "-mt" in config: seg_method = 0
+    if "-train" in config: train = 1
 
 #Variable: find_encode
 #- 0: Use specified encode
@@ -58,6 +61,15 @@ if config[0] == "DCADE_Pattern_Alignment.py":
 #Variable: IGNORE_LEN (loop ignore_len from 0~IGNORE_LEN)
 #--------------------------
 #Variable: MINIMAL_REPEAT (Minimal repeat count)
+
+
+# In[ ]:
+
+
+def get_good_encode():
+    d = GBM.train_data_prepare()
+    is_good = d['label'] == 1
+    return d[is_good]['encode'].unique()
 
 
 # In[ ]:
@@ -125,7 +137,7 @@ def find_unique_mt(col, tecid):
 # In[ ]:
 
 
-def encode_and_segment(encode_col, encode_option, unique_mt, ignore_len, MINIMAL_REPEAT):  
+def encode_and_segment(lock, encode_col, encode_option, unique_mt, ignore_len, MINIMAL_REPEAT):  
     node_encode = node_op.encode_node(encode_col, encode_option, len(encode_col[0]))
     whole_string, node_dict, index_dict = node_encode
     # node_dict:  code -> node num
@@ -135,9 +147,9 @@ def encode_and_segment(encode_col, encode_option, unique_mt, ignore_len, MINIMAL
     inv_index_dict = {v: k for k, v in index_dict.items()} # index num -> code
     if seg_method == 0:
         segments = node_op.segment_mt(unique_mt, whole_string)
-        record_seg = node_op.mt_record_seg(segments, ignore_len, index_dict, inv_node_dict, MINIMAL_REPEAT)
+        record_seg = node_op.mt_record_seg(lock, segments, ignore_len, index_dict, inv_node_dict, MINIMAL_REPEAT)
     if seg_method == 1:
-        segments, record_seg = node_op.segment_top(whole_string, ignore_len, index_dict, inv_node_dict, MINIMAL_REPEAT)
+        segments, record_seg = node_op.segment_top(lock, whole_string, ignore_len, index_dict, inv_node_dict, MINIMAL_REPEAT)
 
     all_seqs = node_op.get_all_seq(record_seg, segments)
     return whole_string, segments, record_seg, all_seqs
@@ -155,8 +167,12 @@ def get_candidate():
                 if len(node_op.find_all_indexes(tmp, '1')) > 3:
                     candidate.append(tmp)
         else:
-            for i in range(1, 512):
-                candidate.append(binary('{0:b}'.format(i), 9))
+            if train == 1:
+                for i in range(1, 512):
+                    candidate.append(binary('{0:b}'.format(i), 9))
+            else:
+                for i in get_good_encode():
+                    candidate.append(binary(str(i), 9))
     else:
         with open('./good_encode.txt', 'rb') as f:
             candidate = pickle.load(f)
@@ -166,7 +182,127 @@ def get_candidate():
 # In[ ]:
 
 
-def auto_brute(encode_col, unique_mt):
+def process_job(lock, jobs, done, encode_col, unique_mt, best, MINIMAL_REPEAT, model_predict):
+    try:
+        while True:
+            j = jobs.get()
+            if j is None:
+                break
+            option, ignore_len = j
+
+            check_dict = {}
+            result = []
+            result.append(str(option))
+            result.append(ignore_len)
+
+            encode_option = option
+            whole_string, segments, record_seg, all_seqs = encode_and_segment(lock, encode_col, encode_option, unique_mt, ignore_len, MINIMAL_REPEAT)
+
+            if len(record_seg) > 0:
+                check_dict[str(all_seqs)] = 1
+                seq_score = []
+                delta_list = []
+                data_len_list = []
+                density_list = []
+                overlap_list = []
+                variance_list = []
+                total_repeat = 0
+                total_delta = 0
+                label_check = 0
+                top_seg = (0, 0) # Indicate (rep_time, seg_id)
+                for seg_idx in range(len(all_seqs)):
+                    appear = {}
+                    score = 0.0
+                    length_min_max = [999, 0]
+                    repeat_time = len(all_seqs[seg_idx])
+                    if repeat_time > top_seg[0]:
+                        top_seg = (repeat_time, seg_idx)
+                    data_count = 0
+                    total_len = 0
+                    overlap = {}
+                    for pattern in all_seqs[seg_idx][:-1]:
+                        if pattern not in overlap.keys():
+                            overlap[pattern] = 0
+                        else: overlap[pattern] += 1
+                        data_count += 1
+                        total_len += len(pattern)
+                        if len(pattern) < length_min_max[0]:
+                            length_min_max[0] = len(pattern)
+                        if len(pattern) > length_min_max[1]:
+                            length_min_max[1] = len(pattern)
+
+                    mean = total_len/data_count
+                    variance_sum = 0
+                    for p in list(overlap.keys()):
+                        for times in range(overlap[p]):
+                            variance_sum += pow(len(p) - mean, 2)
+                    total_repeat += repeat_time
+                    delta_list.append(length_min_max[1] - length_min_max[0])
+                    data_len_list.append(total_len/data_count)
+                    density_list.append((data_count*len(record_seg[seg_idx][1][1]))/total_len)
+                    variance_list.append(variance_sum/data_count)
+                    overlap_list.append(overlap)
+                    a = cosine_similarity(node_op.to_vector(all_seqs)[seg_idx])
+                    score = min([min(s) for s in a])
+
+                    # Heuristic Limitation
+                    if model_predict == 0:
+                        if length_min_max[1] == 1 or length_min_max[0] == 1:
+                            seq_score.append(score * 0.1)
+                        elif length_min_max[1] > 12: seq_score.append(0)
+                        elif length_min_max[1] == length_min_max[0]:
+                            seq_score.append(score)
+                        else:
+                            delta = delta_list[seg_idx]
+                            if delta <= 2: seq_score.append(score)
+                            elif delta <= 3: seq_score.append(score*0.7)
+                            elif delta <= 4: seq_score.append(score*0.6)
+                            elif delta <= 5: seq_score.append(score*0.5)
+                            elif delta <= 6: seq_score.append(score*0.4)
+                            else: seq_score.append(score*0.3)
+                    else: seq_score.append(score)
+
+                total_score = 0
+                for s in range(len(record_seg)):
+                    total_score += seq_score[s]
+                if 0.0 in seq_score: total_score = 0
+                average = total_score/len(record_seg)
+
+                result.append(top_seg[0])
+                result.append(delta_list[top_seg[1]])
+                result.append(seq_score[top_seg[1]])
+                result.append(data_len_list[top_seg[1]])
+                result.append(density_list[top_seg[1]])
+                result.append(variance_list[top_seg[1]])
+                result.append(max(overlap_list[top_seg[1]].values()))
+
+                #This line for output train label
+                #---------------------
+                #if top_seg[0] == 12:
+                #    label_check = 1
+                #---------------------
+
+                if label_check == 1: result.append(1)
+                else: result.append(0)
+                if average >= best['score'] and not model_predict:
+                    print("\nBest Update\n")
+                    best['score'] = average
+                    best['Set count'] = len(record_seg)
+                    best['option'] = option
+                    best['ignore_len'] = ignore_len
+            else:
+                for _ in range(8):
+                    result.append(0)
+            jobs.task_done()
+            done.put(result)
+    except Exception as e:
+        print(e)
+
+
+# In[ ]:
+
+
+def auto_brute(lock, jobs, done, encode_col, unique_mt, MINIMAL_REPEAT, model_predict):
     # Generate features for each encoding
 
     best = {'option':'000000000', 'score': 0, 'ignore_len': 0}
@@ -194,127 +330,54 @@ def auto_brute(encode_col, unique_mt):
         candidate = get_candidate()
 
         total_progress = len(candidate * (IGNORE_LEN+1))
-
+        
+        num_cpus = int(multiprocessing.cpu_count())
+        processes = []
+        
+        print("Worker {", end='')
+        for cpu in range(num_cpus):
+            p = multiprocessing.Process(target=process_job, args=(lock, jobs, done, encode_col, unique_mt, best, MINIMAL_REPEAT, model_predict))
+            p.start()
+            processes.append(p)
+            print(cpu, end=' ')
+        print("} Start")
+        
+        job_count = 0
         for ignore_len in range(IGNORE_LEN+1):
-            check_dict = {}
             for option in candidate:
-                encode.append(str(option))
-                ign_len.append(ignore_len)
-                progress += 1
-                while (progress/float(total_progress))*100 >= progress_line[line_count]:
-                    print("="*80, "\nProgress:", progress_line[line_count], "%\t", progress, "/", total_progress, "Ignore len:", ignore_len)
-                    print("="*80)
-                    line_count += 1
-
-                encode_option = option
-                whole_string, segments, record_seg, all_seqs = encode_and_segment(encode_col, encode_option, unique_mt, ignore_len, MINIMAL_REPEAT)
-
-                if len(record_seg) > 0:
-                    check_dict[str(all_seqs)] = 1
-                    seq_score = []
-                    delta_list = []
-                    data_len_list = []
-                    density_list = []
-                    overlap_list = []
-                    variance_list = []
-                    total_repeat = 0
-                    total_delta = 0
-                    label_check = 0
-                    top_seg = (0, 0) # Indicate (rep_time, seg_id)
-                    for seg_idx in range(len(all_seqs)):
-                        appear = {}
-                        score = 0.0
-                        length_min_max = [999, 0]
-                        repeat_time = len(all_seqs[seg_idx])
-                        if repeat_time > top_seg[0]:
-                            top_seg = (repeat_time, seg_idx)
-                        data_count = 0
-                        total_len = 0
-                        overlap = {}
-                        for pattern in all_seqs[seg_idx][:-1]:
-                            if pattern not in overlap.keys():
-                                overlap[pattern] = 0
-                            else: overlap[pattern] += 1
-                            data_count += 1
-                            total_len += len(pattern)
-                            if len(pattern) < length_min_max[0]:
-                                length_min_max[0] = len(pattern)
-                            if len(pattern) > length_min_max[1]:
-                                length_min_max[1] = len(pattern)
-
-                        mean = total_len/data_count
-                        variance_sum = 0
-                        for p in list(overlap.keys()):
-                            for times in range(overlap[p]):
-                                variance_sum += pow(len(p) - mean, 2)
-                        total_repeat += repeat_time
-                        delta_list.append(length_min_max[1] - length_min_max[0])
-                        data_len_list.append(total_len/data_count)
-                        density_list.append((data_count*len(record_seg[seg_idx][1][1]))/total_len)
-                        variance_list.append(variance_sum/data_count)
-                        overlap_list.append(overlap)
-                        score = np.amin(cosine_similarity(node_op.to_vector(all_seqs)[seg_idx]))
-
-                        # Heuristic Limitation
-                        if model_predict == 0:
-                            if length_min_max[1] == 1 or length_min_max[0] == 1:
-                                seq_score.append(score * 0.1)
-                            elif length_min_max[1] > 12: seq_score.append(0)
-                            elif length_min_max[1] == length_min_max[0]:
-                                seq_score.append(score)
-                            else:
-                                delta = delta_list[seg_idx]
-                                if delta <= 2: seq_score.append(score)
-                                elif delta <= 3: seq_score.append(score*0.7)
-                                elif delta <= 4: seq_score.append(score*0.6)
-                                elif delta <= 5: seq_score.append(score*0.5)
-                                elif delta <= 6: seq_score.append(score*0.4)
-                                else: seq_score.append(score*0.3)
-                        else: seq_score.append(score)
-
-                    total_score = 0
-                    for s in range(len(record_seg)):
-                        total_score += seq_score[s]
-                    if 0.0 in seq_score: total_score = 0
-                    average = total_score/len(record_seg)
-
-                    rep_time.append(top_seg[0])
-                    data_block_delta.append(delta_list[top_seg[1]])
-                    similarity.append(seq_score[top_seg[1]])
-                    data_block_len.append(data_len_list[top_seg[1]])
-                    top_rep_density.append(density_list[top_seg[1]])
-                    top_rep_variance.append(variance_list[top_seg[1]])
-                    top_rep_overlap.append(max(overlap_list[top_seg[1]].values()))
-
-                    #This line for output train label
-                    #---------------------
-                    #if top_seg[0] == 12:
-                    #    label_check = 1
-                    #---------------------
-
-                    if label_check == 1: label.append(1)
-                    else: label.append(0)
-                    if average >= best['score'] and not model_predict:
-                        print("\nBest Update\n")
-                        best['score'] = average
-                        best['Set count'] = len(record_seg)
-                        best['option'] = option
-                        best['ignore_len'] = ignore_len
-                else:
-                    rep_time.append(0)
-                    data_block_delta.append(0)
-                    similarity.append(0)
-                    data_block_len.append(0)
-                    top_rep_density.append(0)
-                    top_rep_variance.append(0)
-                    top_rep_overlap.append(0)
-                    label.append(0)
-        data = pd.DataFrame(np.transpose(
-            np.array(
-                [encode, ign_len, rep_time, data_block_delta, similarity, data_block_len, top_rep_density, top_rep_variance, top_rep_overlap, label]
-            )
-        ), columns=["encode", "ign_len", "rep_time", "data_block_delta", "similarity", "data_block_len", "top_rep_density", "top_rep_variance", "top_rep_overlap", "label"]
-                           )
+                jobs.put((option, ignore_len))
+                job_count += 1
+        
+        for i in range(job_count):
+            result = done.get()
+            encode.append(result[0])
+            ign_len.append(result[1])
+            rep_time.append(result[2])
+            data_block_delta.append(result[3])
+            similarity.append(result[4])
+            data_block_len.append(result[5])
+            top_rep_density.append(result[6])
+            top_rep_variance.append(result[7])
+            top_rep_overlap.append(result[8])
+            label.append(result[9])
+        
+        jobs.join()
+        print("Job All CLear")
+        
+        for _ in range(num_cpus):
+            jobs.put(None)
+        
+        for worker in processes:
+            worker.terminate()
+            worker.join()
+        
+        data = pd.DataFrame(
+            np.transpose(
+                np.array(
+                    [encode, ign_len, rep_time, data_block_delta, similarity, data_block_len, top_rep_density, top_rep_variance, top_rep_overlap, label]
+                )
+            ), columns=["encode", "ign_len", "rep_time", "data_block_delta", "similarity", "data_block_len", "top_rep_density", "top_rep_variance", "top_rep_overlap", "label"]
+        )
     if model_predict == 0:
         print("Best:", best)
         return best
@@ -330,17 +393,24 @@ def main():
     if not check_mc(col): return 1
     unique_mt = find_unique_mt(col, tecid)
     encode_col = [tag, ids, classes, pathid, parentid, tecid, cecid, encoding, col]
+    
+    lock = multiprocessing.Lock()
+    jobs = multiprocessing.JoinableQueue()
+    done = multiprocessing.Queue()
+    
     if model_predict:
-        data = auto_brute(encode_col, unique_mt)
+        data = auto_brute(lock, jobs, done, encode_col, unique_mt, MINIMAL_REPEAT, model_predict)
         # Save each encoding to test file
-
         data.to_csv("./GBM/test.csv")
         # Predict test file by pre-trained model
         
         predict_encode, predict_ign_len = GBM.GBM_predict("test", "10_model")
+        if train == 1:
+            data.to_csv("./GBM/need_label_" + site_name + ".csv")
+            return 3
+        if predict_encode == 0: return 2
         predict_encode = binary(str(predict_encode), 9)
-        
-    else: best = auto_brute(encode_col, unique_mt)
+    else: best = auto_brute(lock, jobs, done, encode_col, unique_mt, MINIMAL_REPEAT, model_predict)
     
     # Using prediction encoding to build suffix tree and segment data block
 
@@ -355,7 +425,7 @@ def main():
         encode_option = '000101001'
         ignore_len = 3
 
-    whole_string, segments, record_seg, all_seqs = encode_and_segment(encode_col, encode_option, unique_mt, ignore_len, MINIMAL_REPEAT)
+    whole_string, segments, record_seg, all_seqs = encode_and_segment(lock, encode_col, encode_option, unique_mt, ignore_len, MINIMAL_REPEAT)
     
     # MSA
 
@@ -563,7 +633,12 @@ def main():
 
 
 if __name__ == "__main__":
-    if main(): "MC Occur, PASS"
+    s = main()
+    if s == 1: print("MC Occur, PASS")
+    elif s == 2:
+        os.system("mv ./GBM/test.csv ./GBM/need_label_" + site_name + ".csv")
+        print("Model no suggest, rename test file to need_label.csv")
+    elif s == 3: print("Train file created, name: need_label_" + site_name + ".csv")
 
 
 # In[ ]:
