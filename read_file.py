@@ -12,6 +12,7 @@ def read_file(input_file_path):
     encoding = []
     col = []
     others = []
+    file_name = []
     with open(input_file_path, encoding='utf-8') as file:
     #with open(input_file_path) as file:
         line = file.readline()
@@ -46,6 +47,8 @@ def read_file(input_file_path):
             elif tmp[0] == "Col Type":
                 col = tmp[1:-1]
             else:
+                file_name.append(tmp[0])
                 others.append(tmp[1:-1])
-    others = others[0:-4]
-    return [content, recb_start, recb_end, tag, ids, classes, pathid, parentid, tecid, cecid, encoding, col, others]
+    others = others[:-4]
+    file_name = file_name[:-4]
+    return file_name, [content, recb_start, recb_end, tag, ids, classes, pathid, parentid, tecid, cecid, encoding, col, others]
