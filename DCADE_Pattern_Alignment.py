@@ -28,6 +28,7 @@ drop_last = 1
 seg_method = 1
 MINIMAL_REPEAT = 5
 IGNORE_LEN = 5
+txt = 0
 current_path = os.path.join(".", "websites", "N7")
 #---------------------
 config = sys.argv
@@ -41,6 +42,7 @@ if config[0] == "DCADE_Pattern_Alignment.py":
     if "-nd" in config: drop_last = 0
     if "-mt" in config: seg_method = 0
     if "-train" in config: train = 1
+    if "-txt" in config: txt = 1
 
 #Variable: find_encode
 #- 0: Use specified encode
@@ -544,7 +546,10 @@ def main():
                                 json_set.append('')
                             else:
                                 clean_text, clean_node = split_node(others[page][tmp[output_dict[record_seg[seg_idx][1][1]]]+idx])
-                                write_tmp.append(clean_node + "\t")
+                                if txt:
+                                    write_tmp.append(clean_text + "\t")
+                                else:
+                                    write_tmp.append(clean_node + "\t")
                                 json_set.append(clean_text)
                                 removed_whole_string = list(removed_whole_string)
                                 removed_whole_string[tmp[output_dict[record_seg[seg_idx][1][1]]]+idx] = "-"
@@ -630,7 +635,10 @@ def main():
                     check = False
                 clean_text, clean_node = split_node(others[page][node])
                 json_page.append(clean_text)
-                txt_table += clean_node
+                if txt:
+                    txt_table += clean_text
+                else:
+                    txt_table += clean_node
                 txt_table += "\t"
         json_table.append(json_page)
         txt_table += "\n"
