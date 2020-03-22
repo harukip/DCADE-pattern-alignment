@@ -250,16 +250,27 @@ def process_job(lock, jobs, done, encode_col, unique_mt, best, MINIMAL_REPEAT, m
                         if len(pattern) > length_min_max[1]:
                             length_min_max[1] = len(pattern)
 
-                    mean = total_len/data_count
+                    if data_count > 0: mean = total_len/data_count
+                    else: mean = 0
+                    
                     variance_sum = 0
                     for p in list(overlap.keys()):
                         for times in range(overlap[p]):
                             variance_sum += pow(len(p) - mean, 2)
+                    
                     total_repeat += repeat_time
+                    
                     delta_list.append(length_min_max[1] - length_min_max[0])
-                    data_len_list.append(total_len/data_count)
-                    density_list.append((data_count*len(record_seg[seg_idx][1][1]))/total_len)
-                    variance_list.append(variance_sum/data_count)
+                    if data_count > 0:
+                        data_len_list.append(total_len/data_count)
+                        variance_list.append(variance_sum/data_count)
+                    else:
+                        data_len_list.append(0)
+                        variance_list.append(999)
+                    if total_len > 0:
+                        density_list.append((data_count*len(record_seg[seg_idx][1][1]))/total_len)
+                    else:
+                        density_list.append(0)
                     overlap_list.append(overlap)
                     a = cosine_similarity(node_op.to_vector(all_seqs)[seg_idx])
                     score = min([min(s) for s in a])
