@@ -434,7 +434,7 @@ def main():
         data.to_csv("./GBM/test.csv")
         # Predict test file by pre-trained model
         
-        predict_encode, predict_ign_len = GBM.GBM_predict("test", "10_model")
+        predict_encode, predict_ign_len = GBM.GBM_predict("test", "model")
         if train == 1:
             data.to_csv("./GBM/need_label_" + site_name + ".csv")
             return 3
