@@ -105,8 +105,6 @@ def read_table(current_path):
 
 def check_mc(col):
     # Check MC
-
-    assert 'MC' not in col
     MC_CHECK = True
     if 'MC' in col:
         MC_CHECK = False
