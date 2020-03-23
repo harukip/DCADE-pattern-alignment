@@ -211,8 +211,6 @@ def process_job(lock, jobs, done, encode_col, unique_mt, best, MINIMAL_REPEAT, m
 
             check_dict = {}
             result = []
-            result.append(str(option))
-            result.append(ignore_len)
 
             encode_option = option
             whole_string, segments, record_seg, all_seqs = encode_and_segment(lock, encode_col, encode_option, unique_mt, ignore_len, MINIMAL_REPEAT)
@@ -298,6 +296,8 @@ def process_job(lock, jobs, done, encode_col, unique_mt, best, MINIMAL_REPEAT, m
                 if 0.0 in seq_score: total_score = 0
                 average = total_score/len(record_seg)
 
+                result.append(str(option))
+                result.append(ignore_len)
                 result.append(top_seg[0])
                 result.append(delta_list[top_seg[1]])
                 result.append(seq_score[top_seg[1]])
@@ -320,11 +320,10 @@ def process_job(lock, jobs, done, encode_col, unique_mt, best, MINIMAL_REPEAT, m
                     best['Set count'] = len(record_seg)
                     best['option'] = option
                     best['ignore_len'] = ignore_len
-            else:
-                for _ in range(8):
-                    result.append(0)
+                done.put(result)
             jobs.task_done()
-            done.put(result)
+        done.put(None)
+        jobs.task_done()
     except Exception as e:
         print(e)
 
@@ -372,30 +371,36 @@ def auto_brute(lock, jobs, done, encode_col, unique_mt, MINIMAL_REPEAT, model_pr
             print(cpu, end=' ')
         print("} Start")
         
-        job_count = 0
         for ignore_len in range(IGNORE_LEN+1):
             for option in candidate:
                 jobs.put((option, ignore_len))
-                job_count += 1
-        
-        for i in range(job_count):
-            result = done.get()
-            encode.append(result[0])
-            ign_len.append(result[1])
-            rep_time.append(result[2])
-            data_block_delta.append(result[3])
-            similarity.append(result[4])
-            data_block_len.append(result[5])
-            top_rep_density.append(result[6])
-            top_rep_variance.append(result[7])
-            top_rep_overlap.append(result[8])
-            label.append(result[9])
-        
-        jobs.join()
-        print("Job All CLear")
         
         for _ in range(num_cpus):
             jobs.put(None)
+        
+        none_count = 0
+        print("Get { ", end='')
+        while True:
+            result = done.get()
+            if result != None:
+                encode.append(result[0])
+                ign_len.append(result[1])
+                rep_time.append(result[2])
+                data_block_delta.append(result[3])
+                similarity.append(result[4])
+                data_block_len.append(result[5])
+                top_rep_density.append(result[6])
+                top_rep_variance.append(result[7])
+                top_rep_overlap.append(result[8])
+                label.append(result[9])
+            else:
+                none_count += 1
+                print(none_count-1, end=' ')
+                if none_count == num_cpus: break
+        print("}")
+        
+        jobs.join()
+        print("Job All CLear")
         
         for worker in processes:
             worker.terminate()
@@ -703,6 +708,6 @@ if __name__ == "__main__":
     if s == 1: print("MC Occur, PASS")
     elif s == 2:
         os.system("mv ./GBM/test.csv ./GBM/need_label_" + site_name + ".csv")
-        print("Model no suggest, rename test file to need_label.csv")
+        print("Model no suggest, rename test file to need_label_" + site_name + ".csv")
     elif s == 3: print("Train file created, name: need_label_" + site_name + ".csv")
 
