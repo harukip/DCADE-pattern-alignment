@@ -162,17 +162,17 @@ def get_candidate():
     if brute == 1:
         candidate = []
         if model_predict == 0:
-            for i in range(8, 512):
-                tmp = binary('{0:b}'.format(i), 9)
+            for i in range(1, 32):
+                tmp = binary('{0:b}'.format(i), 5)
                 if len(node_op.find_all_indexes(tmp, '1')) > 3:
                     candidate.append(tmp)
         else:
             if train == 1:
-                for i in range(1, 512):
-                    candidate.append(binary('{0:b}'.format(i), 9))
+                for i in range(1, 32):
+                    candidate.append(binary('{0:b}'.format(i), 5))
             else:
                 for i in get_good_encode():
-                    candidate.append(binary(str(i), 9))
+                    candidate.append(binary(str(i), 5))
     else:
         with open('./good_encode.txt', 'rb') as f:
             candidate = pickle.load(f)
@@ -334,7 +334,7 @@ def process_job(lock, jobs, done, encode_col, unique_mt, best, MINIMAL_REPEAT, m
 def auto_brute(lock, jobs, done, encode_col, unique_mt, MINIMAL_REPEAT, model_predict):
     # Generate features for each encoding
 
-    best = {'option':'000000000', 'score': 0, 'ignore_len': 0}
+    best = {'option':'00000', 'score': 0, 'ignore_len': 0}
     if find_encode == 1:
         # Parameter
         
@@ -427,7 +427,7 @@ def main():
     file_name, [content, recb_start, recb_end, tag, ids, classes, pathid, parentid, tecid, cecid, encoding, col, others] = read_table(current_path)
     if not check_mc(col): return 1
     unique_mt = find_unique_mt(col, tecid)
-    encode_col = [tag, ids, classes, pathid, parentid, tecid, cecid, encoding, col]
+    encode_col = [pathid, parentid, tecid, cecid, encoding]
     
     lock = multiprocessing.Lock()
     jobs = multiprocessing.JoinableQueue()
@@ -437,14 +437,13 @@ def main():
         data = auto_brute(lock, jobs, done, encode_col, unique_mt, MINIMAL_REPEAT, model_predict)
         # Save each encoding to test file
         data.to_csv("./GBM/test.csv")
-        # Predict test file by pre-trained model
-        
-        predict_encode, predict_ign_len = GBM.GBM_predict("test", "model")
         if train == 1:
             data.to_csv("./GBM/need_label_" + site_name + ".csv")
             return 3
+        # Predict test file by pre-trained model
+        predict_encode, predict_ign_len = GBM.GBM_predict("test", "model")
         if predict_encode == 0: return 2
-        predict_encode = binary(str(predict_encode), 9)
+        predict_encode = binary(str(predict_encode), 5)
     else: best = auto_brute(lock, jobs, done, encode_col, unique_mt, MINIMAL_REPEAT, model_predict)
     
     # Using prediction encoding to build suffix tree and segment data block
